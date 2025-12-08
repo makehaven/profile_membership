@@ -1,0 +1,15 @@
+profile_membership.initiate:
+  path: '/membership-initiate'
+  defaults:
+    _controller: '\Drupal\profile_membership\Controller\MembershipController::initiate'
+    _title: 'Starting Membership'
+  requirements:
+    _permission: 'access content'
+
+profile_membership.finalize:
+  path: '/membership-finalize'
+  defaults:
+    _controller: '\Drupal\profile_membership\Controller\MembershipController::finalize'
+    _title: 'Membership Finalize'
+  requirements:
+    _user_is_logged_in: 'TRUE'
