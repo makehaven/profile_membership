@@ -1,0 +1,6 @@
+{
+    "name": "makehaven/profile_membership",
+    "type": "drupal-custom-module",
+    "description": "Guides Chargebee members through login and profile completion after payment.",
+    "license": "GPL-2.0-or-later"
+}
