@@ -1,7 +1,7 @@
 name: 'Profile Membership'
 type: module
 description: 'Handles the robust post-payment workflow for membership registration and profile completion.'
-package: Custom
+package: Makerspace
 core_version_requirement: ^9 || ^10 || ^11
 dependencies:
   - drupal:profile
