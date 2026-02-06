@@ -28,7 +28,7 @@ class MembershipController extends ControllerBase {
 
     if (!$user) {
       $url = Url::fromRoute('user.register', [], ['query' => $query_params]);
-      return $this->redirectUrl($url);
+      return new RedirectResponse($url->toString());
     }
 
     $expected_uid = $user->id();
@@ -38,7 +38,7 @@ class MembershipController extends ControllerBase {
 
     if ($current_user->isAuthenticated() && (int) $current_user->id() === (int) $expected_uid) {
       $url = Url::fromRoute('profile_membership.finalize');
-      return $this->redirectUrl($url);
+      return new RedirectResponse($url->toString());
     }
 
     if ($current_user->isAuthenticated() && (int) $current_user->id() !== (int) $expected_uid) {
@@ -49,7 +49,7 @@ class MembershipController extends ControllerBase {
     }
 
     $login_url = Url::fromRoute('user.login', [], ['query' => ['destination' => '/membership-finalize']]);
-    return $this->redirectUrl($login_url);
+    return new RedirectResponse($login_url->toString());
   }
 
   public function finalize(Request $request) {
