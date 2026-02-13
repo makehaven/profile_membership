@@ -13,3 +13,11 @@ profile_membership.finalize:
     _title: 'Membership Finalize'
   requirements:
     _user_is_logged_in: 'TRUE'
+
+profile_membership.settings:
+  path: '/admin/config/makerspace/profile-membership'
+  defaults:
+    _form: '\Drupal\profile_membership\Form\ProfileMembershipSettingsForm'
+    _title: 'Profile Membership Settings'
+  requirements:
+    _permission: 'administer profile membership settings'

@@ -1,0 +1,30 @@
+profile_membership.settings:
+  type: config_object
+  label: 'Profile Membership settings'
+  mapping:
+    entrepreneurship_email_enabled:
+      type: boolean
+      label: 'Enable entrepreneurship follow-up email'
+    send_once:
+      type: boolean
+      label: 'Send only once'
+    regional_support_url:
+      type: string
+      label: 'Regional support system URL'
+    trigger_goal_values:
+      type: sequence
+      label: 'Goal trigger values'
+      sequence:
+        type: string
+    trigger_entrepreneurship_values:
+      type: sequence
+      label: 'Entrepreneurship trigger values'
+      sequence:
+        type: string
+    entrepreneurship_email_subject:
+      type: string
+      label: 'Entrepreneurship email subject'
+    entrepreneurship_email_body:
+      type: text
+      label: 'Entrepreneurship email body'
+

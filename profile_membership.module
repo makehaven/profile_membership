@@ -1,0 +1,128 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\profile\Entity\ProfileInterface;
+
+/**
+ * Implements hook_entity_insert().
+ */
+function profile_membership_entity_insert(EntityInterface $entity): void {
+  profile_membership_maybe_send_entrepreneurship_email($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function profile_membership_entity_update(EntityInterface $entity): void {
+  profile_membership_maybe_send_entrepreneurship_email($entity);
+}
+
+/**
+ * Sends an entrepreneurship follow-up email when profile selections match.
+ */
+function profile_membership_maybe_send_entrepreneurship_email(EntityInterface $entity): void {
+  if (!$entity instanceof ProfileInterface || $entity->bundle() !== 'main') {
+    return;
+  }
+
+  $config = \Drupal::config('profile_membership.settings');
+  if (!$config->get('entrepreneurship_email_enabled')) {
+    return;
+  }
+
+  $goal_values = profile_membership_get_list_values($entity, 'field_member_goal');
+  $entrepreneurship_values = profile_membership_get_list_values($entity, 'field_member_entrepreneurship');
+  $all_values = array_unique(array_merge($goal_values, $entrepreneurship_values));
+
+  $trigger_goals = (array) $config->get('trigger_goal_values');
+  $trigger_entrepreneurship = (array) $config->get('trigger_entrepreneurship_values');
+  $trigger_values = array_unique(array_merge($trigger_goals, $trigger_entrepreneurship));
+
+  if (!$trigger_values || !array_intersect($all_values, $trigger_values)) {
+    return;
+  }
+
+  $account = $entity->getOwner();
+  if (!$account || !$account->id()) {
+    return;
+  }
+
+  $to = (string) $account->getEmail();
+  if ($to === '') {
+    return;
+  }
+
+  $user_data = \Drupal::service('user.data');
+  if ($config->get('send_once') && $user_data->get('profile_membership', $account->id(), 'entrepreneurship_invite_sent')) {
+    return;
+  }
+
+  $subject = (string) $config->get('entrepreneurship_email_subject');
+  $body_template = (string) $config->get('entrepreneurship_email_body');
+  $regional_support_url = (string) $config->get('regional_support_url');
+
+  $site_name = (string) \Drupal::config('system.site')->get('name');
+  $variables = [
+    '[user:display-name]' => $account->getDisplayName(),
+    '[user:mail]' => $to,
+    '[site:name]' => $site_name,
+    '[regional_support_url]' => $regional_support_url,
+  ];
+
+  $body = strtr($body_template, $variables);
+  $langcode = $account->getPreferredLangcode() ?: 'en';
+  $from = (string) \Drupal::config('system.site')->get('mail');
+
+  $params = [
+    'subject' => strtr($subject, $variables),
+    'body' => $body,
+  ];
+
+  $result = \Drupal::service('plugin.manager.mail')->mail(
+    'profile_membership',
+    'entrepreneurship_invite',
+    $to,
+    $langcode,
+    $params,
+    $from,
+    TRUE
+  );
+
+  if (!empty($result['result'])) {
+    if ($config->get('send_once')) {
+      $user_data->set('profile_membership', $account->id(), 'entrepreneurship_invite_sent', \Drupal::time()->getCurrentTime());
+    }
+    \Drupal::logger('profile_membership')->notice('Entrepreneurship follow-up email sent to user @uid.', ['@uid' => $account->id()]);
+  }
+  else {
+    \Drupal::logger('profile_membership')->error('Failed to send entrepreneurship follow-up email to user @uid.', ['@uid' => $account->id()]);
+  }
+}
+
+/**
+ * Extracts string values from a list field.
+ */
+function profile_membership_get_list_values(ProfileInterface $profile, string $field_name): array {
+  if (!$profile->hasField($field_name)) {
+    return [];
+  }
+  $items = $profile->get($field_name)->getValue();
+  if (empty($items)) {
+    return [];
+  }
+  return array_values(array_filter(array_map(static fn(array $item): string => (string) ($item['value'] ?? ''), $items)));
+}
+
+/**
+ * Implements hook_mail().
+ */
+function profile_membership_mail(string $key, array &$message, array $params): void {
+  if ($key !== 'entrepreneurship_invite') {
+    return;
+  }
+  $message['subject'] = (string) ($params['subject'] ?? '');
+  $message['body'][] = (string) ($params['body'] ?? '');
+}
+

@@ -1,0 +1,25 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Adds default settings for entrepreneurship follow-up emails.
+ */
+function profile_membership_update_9001(): void {
+  $config = \Drupal::configFactory()->getEditable('profile_membership.settings');
+
+  if ($config->getRawData()) {
+    return;
+  }
+
+  $config
+    ->set('entrepreneurship_email_enabled', TRUE)
+    ->set('send_once', TRUE)
+    ->set('regional_support_url', 'https://www.makehaven.org/entrepreneurship')
+    ->set('trigger_goal_values', ['entrepreneur'])
+    ->set('trigger_entrepreneurship_values', ['serial_entrepreneur', 'patent'])
+    ->set('entrepreneurship_email_subject', 'Entrepreneurship resources and regional support from [site:name]')
+    ->set('entrepreneurship_email_body', "Hi [user:display-name],\n\nThanks for sharing your interest in entrepreneurship during registration.\n\nWe encourage you to join the regional support system for entrepreneurs:\n[regional_support_url]\n\nMakeHaven also offers resources for entrepreneurs, including classes, equipment access, and community connections that can help you move ideas toward prototypes and products.\n\nIf you have questions, reply to this email and our team can help point you to the right next step.\n\n- [site:name]")
+    ->save();
+}
+

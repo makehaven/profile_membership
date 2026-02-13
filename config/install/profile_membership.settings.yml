@@ -1,0 +1,23 @@
+entrepreneurship_email_enabled: true
+send_once: true
+regional_support_url: 'https://www.makehaven.org/entrepreneurship'
+trigger_goal_values:
+  - entrepreneur
+trigger_entrepreneurship_values:
+  - serial_entrepreneur
+  - patent
+entrepreneurship_email_subject: 'Entrepreneurship resources and regional support from [site:name]'
+entrepreneurship_email_body: |-
+  Hi [user:display-name],
+
+  Thanks for sharing your interest in entrepreneurship during registration.
+
+  We encourage you to join the regional support system for entrepreneurs:
+  [regional_support_url]
+
+  MakeHaven also offers resources for entrepreneurs, including classes, equipment access, and community connections that can help you move ideas toward prototypes and products.
+
+  If you have questions, reply to this email and our team can help point you to the right next step.
+
+  - [site:name]
+

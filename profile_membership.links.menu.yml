@@ -1,0 +1,6 @@
+profile_membership.settings:
+  title: 'Profile Membership'
+  description: 'Configure membership profile flow and entrepreneurship follow-up email.'
+  route_name: profile_membership.settings
+  parent: system.admin_config_services
+
