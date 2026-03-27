@@ -2,8 +2,61 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Entity\ContentEntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\profile\Entity\ProfileInterface;
+
+/**
+ * Implements hook_form_alter().
+ */
+function profile_membership_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof ContentEntityFormInterface) {
+    return;
+  }
+
+  $entity = $form_object->getEntity();
+  if (!profile_membership_is_member_self_profile_edit($entity, \Drupal::currentUser())) {
+    return;
+  }
+
+  if (isset($form['revision_information'])) {
+    $form['revision_information']['#access'] = FALSE;
+  }
+
+  if (isset($form['revision'])) {
+    $form['revision']['#access'] = FALSE;
+  }
+
+  if (isset($form['revision_log_message'])) {
+    $form['revision_log_message']['#access'] = FALSE;
+  }
+
+  if (isset($form['actions']['submit']['#submit']) && is_array($form['actions']['submit']['#submit'])) {
+    $form['actions']['submit']['#submit'][] = 'profile_membership_force_member_self_edit_revision';
+  }
+}
+
+/**
+ * Forces revisions for members editing their own main profile.
+ */
+function profile_membership_force_member_self_edit_revision(array $form, FormStateInterface $form_state): void {
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof ContentEntityFormInterface) {
+    return;
+  }
+
+  $entity = $form_object->getEntity();
+  if (!profile_membership_is_member_self_profile_edit($entity, \Drupal::currentUser())) {
+    return;
+  }
+
+  assert($entity instanceof ProfileInterface);
+  $entity->setNewRevision(TRUE);
+  $entity->setRevisionLogMessage('Member updated their own profile.');
+}
 
 /**
  * Implements hook_entity_insert().
@@ -126,3 +179,18 @@ function profile_membership_mail(string $key, array &$message, array $params): v
   $message['body'][] = (string) ($params['body'] ?? '');
 }
 
+/**
+ * Checks whether the current edit is a member editing their own main profile.
+ */
+function profile_membership_is_member_self_profile_edit(EntityInterface $entity, AccountInterface $account): bool {
+  if (!$entity instanceof ProfileInterface || $entity->bundle() !== 'main') {
+    return FALSE;
+  }
+
+  if ($account->isAnonymous() || !$account->hasRole('member')) {
+    return FALSE;
+  }
+
+  $owner = $entity->getOwner();
+  return $owner && (int) $owner->id() === (int) $account->id();
+}
