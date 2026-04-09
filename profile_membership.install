@@ -15,11 +15,11 @@ function profile_membership_update_9001(): void {
   $config
     ->set('entrepreneurship_email_enabled', TRUE)
     ->set('send_once', TRUE)
-    ->set('regional_support_url', 'https://www.makehaven.org/entrepreneurship')
+    ->set('regional_support_url', 'https://entrepreneurship-nexus.web.app')
     ->set('trigger_goal_values', ['entrepreneur'])
-    ->set('trigger_entrepreneurship_values', ['serial_entrepreneur', 'patent'])
-    ->set('entrepreneurship_email_subject', 'Entrepreneurship resources and regional support from [site:name]')
-    ->set('entrepreneurship_email_body', "Hi [user:display-name],\n\nThanks for sharing your interest in entrepreneurship during registration.\n\nWe encourage you to join the regional support system for entrepreneurs:\n[regional_support_url]\n\nMakeHaven also offers resources for entrepreneurs, including classes, equipment access, and community connections that can help you move ideas toward prototypes and products.\n\nIf you have questions, reply to this email and our team can help point you to the right next step.\n\n- [site:name]")
+    ->set('trigger_entrepreneurship_values', ['exploring_idea', 'active_business', 'serial_entrepreneur', 'seeking_funding', 'seeking_advisors', 'patent'])
+    ->set('entrepreneurship_email_subject', 'Your MakeHaven membership now unlocks regional entrepreneur resources')
+    ->set('entrepreneurship_email_body', "Hi [user:display-name],\n\nBecause you\u2019re working on a business, we wanted to make sure you know about something useful: MakeHaven is connected to the regional Entrepreneurship Nexus, a network that gives you access to business advisors, funding programs, and workshops from organizations across the region \u2014 all with your MakeHaven login.\n\nYour tools, workspace reservations, and events stay right here at MakeHaven. The Nexus just extends what\u2019s available to you beyond our walls.\n\nAccess the Entrepreneurship Nexus:\n[regional_support_url]\n\nOn that page, click \u201cSign in with MakeHaven\u201d \u2014 your existing account connects automatically, no new password needed.\n\nIf you have questions or want to talk through what resources might be useful for where you\u2019re at, reply to this email and we\u2019ll connect you with the right person.\n\n\u2014 The MakeHaven Team")
     ->save();
 }
 

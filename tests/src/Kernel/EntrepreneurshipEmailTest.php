@@ -108,7 +108,7 @@ class EntrepreneurshipEmailTest extends KernelTestBase {
       ->set('send_once', TRUE)
       ->set('regional_support_url', 'https://example.com/entrepreneur-support')
       ->set('trigger_goal_values', ['entrepreneur'])
-      ->set('trigger_entrepreneurship_values', ['serial_entrepreneur', 'patent'])
+      ->set('trigger_entrepreneurship_values', ['exploring_idea', 'active_business', 'serial_entrepreneur', 'seeking_funding', 'seeking_advisors', 'patent'])
       ->set('entrepreneurship_email_subject', 'Entrepreneur support from [site:name]')
       ->set('entrepreneurship_email_body', "Hi [user:display-name]\n[regional_support_url]")
       ->save();
@@ -135,6 +135,34 @@ class EntrepreneurshipEmailTest extends KernelTestBase {
 
     $emails = $this->getCollectedEmails();
     $this->assertCount(1, $emails, 'No additional email was sent when send_once is enabled.');
+  }
+
+  /**
+   * Tests that the expanded entrepreneurship taxonomy values trigger the email.
+   */
+  public function testSendsEmailForExpandedTaxonomyValues(): void {
+    $newValues = ['exploring_idea', 'active_business', 'seeking_funding', 'seeking_advisors'];
+
+    foreach ($newValues as $index => $value) {
+      $user = \Drupal\user\Entity\User::create([
+        'name' => "member-expanded-{$index}",
+        'mail' => "member-expanded-{$index}@example.com",
+        'status' => 1,
+      ]);
+      $user->save();
+
+      $this->container->get('state')->delete('system.test_mail_collector');
+
+      $profile = \Drupal\profile\Entity\Profile::create([
+        'type' => 'main',
+        'uid' => $user->id(),
+        'field_member_entrepreneurship' => [['value' => $value]],
+      ]);
+      $profile->save();
+
+      $emails = $this->getCollectedEmails();
+      $this->assertCount(1, $emails, "Email sent for entrepreneurship value '{$value}'.");
+    }
   }
 
   /**

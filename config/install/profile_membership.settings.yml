@@ -1,23 +1,29 @@
 entrepreneurship_email_enabled: true
 send_once: true
-regional_support_url: 'https://www.makehaven.org/entrepreneurship'
+regional_support_url: 'https://entrepreneurship-nexus.web.app'
 trigger_goal_values:
   - entrepreneur
 trigger_entrepreneurship_values:
+  - exploring_idea
+  - active_business
   - serial_entrepreneur
+  - seeking_funding
+  - seeking_advisors
   - patent
-entrepreneurship_email_subject: 'Entrepreneurship resources and regional support from [site:name]'
+entrepreneurship_email_subject: 'Your MakeHaven membership now unlocks regional entrepreneur resources'
 entrepreneurship_email_body: |-
   Hi [user:display-name],
 
-  Thanks for sharing your interest in entrepreneurship during registration.
+  Because you're working on a business, we wanted to make sure you know about something useful: MakeHaven is connected to the regional Entrepreneurship Nexus, a network that gives you access to business advisors, funding programs, and workshops from organizations across the region — all with your MakeHaven login.
 
-  We encourage you to join the regional support system for entrepreneurs:
+  Your tools, workspace reservations, and events stay right here at MakeHaven. The Nexus just extends what's available to you beyond our walls.
+
+  Access the Entrepreneurship Nexus:
   [regional_support_url]
 
-  MakeHaven also offers resources for entrepreneurs, including classes, equipment access, and community connections that can help you move ideas toward prototypes and products.
+  On that page, click "Sign in with MakeHaven" — your existing account connects automatically, no new password needed.
 
-  If you have questions, reply to this email and our team can help point you to the right next step.
+  If you have questions or want to talk through what resources might be useful for where you're at, reply to this email and we'll connect you with the right person.
 
-  - [site:name]
+  — The MakeHaven Team
 
