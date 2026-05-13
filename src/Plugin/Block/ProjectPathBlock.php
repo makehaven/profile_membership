@@ -92,7 +92,7 @@ class ProjectPathBlock extends BlockBase implements ContainerFactoryPluginInterf
     if (!$want && !$made) {
       $build['empty'] = [
         '#markup' => $is_self
-          ? '<p>' . $this->t('You haven\'t picked any projects yet. <a href="@url">Find projects to make</a> in your interest areas.', ['@url' => Url::fromUri('internal:/involve')->toString()]) . '</p>'
+          ? '<p>' . $this->t('You haven\'t picked any projects yet. <a href="@url">Find projects to make</a> in your interest areas.', ['@url' => Url::fromUri('internal:/projects')->toString()]) . '</p>'
           : '<p>' . $this->t('No projects flagged yet.') . '</p>',
       ];
       return $build;
