@@ -6,7 +6,9 @@ use Drupal\Core\Entity\ContentEntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
 use Drupal\profile\Entity\ProfileInterface;
+use Drupal\user\UserInterface;
 
 /**
  * Implements hook_form_alter().
@@ -37,6 +39,39 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
   if (isset($form['actions']['submit']['#submit']) && is_array($form['actions']['submit']['#submit'])) {
     $form['actions']['submit']['#submit'][] = 'profile_membership_force_member_self_edit_revision';
   }
+
+  // Billing-state fields. `field_membership_type` is authoritatively written
+  // by Chargebee (chargebee_status_sync PlanManager on every webhook, plus
+  // the chargebee_fetch_data batch sync) and a member changing it via this
+  // form could set themselves to a cheaper/free plan until the next webhook
+  // re-syncs it — and in the meantime any logic keying off membership type
+  // would be wrong. `field_member_payment_method` feeds the Finance
+  // "Payment Mix" dashboard chart and has no automated writer, so a member
+  // silently flipping it would corrupt reporting outright. View displays
+  // already hide both fields; this closes the matching edit-form leak.
+  // Staff/admin profile edits and Chargebee sync are unaffected — they
+  // don't go through the member self-edit path this alter scopes to.
+  foreach (['field_membership_type', 'field_member_payment_method'] as $billing_field) {
+    if (isset($form[$billing_field])) {
+      $form[$billing_field]['#access'] = FALSE;
+    }
+  }
+
+  // The address field was deprecated for CiviCRM and removed from this form
+  // (commit 6dc3268f42). Members still come here looking for it, so point
+  // them at the dedicated self-service page. Placed at the top so it's the
+  // first thing a member hunting for "address" sees.
+  $form['profile_membership_address_moved'] = [
+    '#type' => 'container',
+    '#weight' => -100,
+    '#attributes' => ['class' => ['messages', 'messages--status']],
+    'content' => [
+      '#markup' => '<strong>' . t('Need to update your mailing address?') . '</strong> '
+      . t('Address is now managed on its own page: <a href=":url">Update your mailing address</a>.', [
+        ':url' => Url::fromRoute('profile_membership.update_address')->toString(),
+      ]),
+    ],
+  ];
 }
 
 /**
@@ -56,6 +91,33 @@ function profile_membership_force_member_self_edit_revision(array $form, FormSta
   assert($entity instanceof ProfileInterface);
   $entity->setNewRevision(TRUE);
   $entity->setRevisionLogMessage('Member updated their own profile.');
+}
+
+/**
+ * Implements hook_makerspace_user_links_links().
+ *
+ * Surfaces the self-service "Update Mailing Address" link on a member's own
+ * user page. The address itself lives in CiviCRM (the Drupal profile field was
+ * deprecated for CiviCRM); this link is the member-facing entry point.
+ */
+function profile_membership_makerspace_user_links_links(UserInterface $account, AccountInterface $viewer, string $audience = 'admin'): array {
+  if ($audience !== 'member' || (int) $account->id() !== (int) $viewer->id()) {
+    return [];
+  }
+
+  return [
+    [
+      'id' => 'update_mailing_address',
+      // UserLinkManager::collectLinks() filters by this key (defaults to
+      // 'admin' when absent), so it must be set explicitly.
+      'audience' => 'member',
+      'title' => t('Update Mailing Address'),
+      'route_name' => 'profile_membership.update_address',
+      'category' => t('Quick Links'),
+      'weight' => -85,
+      'description' => t('Update the mailing address we have on file.'),
+    ],
+  ];
 }
 
 /**

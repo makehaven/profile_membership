@@ -1,0 +1,6 @@
+services:
+  profile_membership.address_sync_manager:
+    class: Drupal\profile_membership\Service\AddressSyncManager
+    arguments:
+      - '@account_switcher'
+      - '@logger.factory'
