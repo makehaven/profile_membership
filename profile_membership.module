@@ -57,6 +57,33 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
     }
   }
 
+  // Staff-only field groups (Operations, Payment, End, Advanced) render on the
+  // member self-edit form as collapsed fieldsets of editable staff data:
+  // membership/offboarding dates, payment status, awards, Slack IDs, staff
+  // notes. A member has no reason to edit any of it, and onboarding members
+  // were shown the entire staff apparatus while trying to finish a short
+  // profile (funnel review 2026-07-17). Hide these for anyone who can't
+  // administer profiles, so staff editing their own profile keep full access.
+  // field_group drops a fieldset once all its children are inaccessible.
+  if (!\Drupal::currentUser()->hasPermission('administer profile')) {
+    $staff_fields = [
+      // Operations.
+      'field_member_reactivation_date', 'field_member_access', 'field_member_slack_id_number',
+      // Payment (membership type + payment method already hidden above).
+      'field_member_scheduled_end', 'field_member_payment_monthly', 'field_member_payment_contact',
+      'field_member_household_primary', 'field_member_payment_status', 'field_member_notes',
+      // End.
+      'field_member_end_date', 'field_member_end_reason', 'field_member_end_reason_notes',
+      // Advanced.
+      'field_member_awards', 'field_member_interests', 'field_member_legacy_username',
+    ];
+    foreach ($staff_fields as $staff_field) {
+      if (isset($form[$staff_field])) {
+        $form[$staff_field]['#access'] = FALSE;
+      }
+    }
+  }
+
   // The address field was deprecated for CiviCRM and removed from this form
   // (commit 6dc3268f42). Members still come here looking for it, so point
   // them at the dedicated self-service page. Placed at the top so it's the
@@ -249,7 +276,11 @@ function profile_membership_is_member_self_profile_edit(EntityInterface $entity,
     return FALSE;
   }
 
-  if ($account->isAnonymous() || !$account->hasRole('member')) {
+  // Onboarding members (member_pending_approval) edit this same form to
+  // complete their profile, so they get the same self-edit trimming as full
+  // members — otherwise they see the entire staff apparatus mid-signup.
+  if ($account->isAnonymous()
+    || !($account->hasRole('member') || $account->hasRole('member_pending_approval'))) {
     return FALSE;
   }
 
