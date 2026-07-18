@@ -1,0 +1,10 @@
+camera_capture:
+  version: 1.x
+  js:
+    js/camera-capture.js: {}
+  css:
+    theme:
+      css/camera-capture.css: {}
+  dependencies:
+    - core/drupal
+    - core/once

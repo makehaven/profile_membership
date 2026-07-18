@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Member self-service profile form: field trimming, deferral, and headshot UX.
+ */
+
 declare(strict_types=1);
 
 use Drupal\Core\Entity\ContentEntityFormInterface;
@@ -22,6 +27,13 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
   $entity = $form_object->getEntity();
   if (!profile_membership_is_member_self_profile_edit($entity, \Drupal::currentUser())) {
     return;
+  }
+
+  // Offer in-browser camera capture for the headshot. Progressive enhancement:
+  // the JS only activates on browsers that support getUserMedia, and the plain
+  // file upload (which already opens the camera on phones) is the fallback.
+  if (isset($form['field_member_photo'])) {
+    $form['#attached']['library'][] = 'profile_membership/camera_capture';
   }
 
   if (isset($form['revision_information'])) {
