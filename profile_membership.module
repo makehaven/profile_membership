@@ -82,6 +82,45 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
         $form[$staff_field]['#access'] = FALSE;
       }
     }
+
+    // Onboarding profile shrink. A member who has not yet been to orientation
+    // (no active door badge) is trying to finish setup, not curate a community
+    // profile — and this step is the join funnel's biggest drop-out (funnel
+    // review 2026-07). Defer the community/marketing fields to after
+    // orientation and show only what we genuinely need before they are in the
+    // building: headshot, contact phone, and emergency contact. The deferred
+    // fields reappear on this same form once the member has their door badge,
+    // so nothing is lost — just resequenced to when they are invested.
+    if ($entity instanceof ProfileInterface
+      && !_profile_membership_member_has_door_access((int) $entity->getOwnerId())) {
+      $deferred_fields = [
+        'field_member_bio', 'field_member_instagram', 'field_member_discovery',
+        'field_member_discovery_event_det', 'field_member_areas_interest',
+        'field_member_goal', 'field_member_goal_other',
+        'field_member_occupation_type', 'field_member_company',
+        'field_member_company_title', 'field_member_school', 'field_member_links',
+        'field_member_characteristics', 'field_member_contact_methood',
+        'field_member_entrepreneurship', 'field_member_availability',
+        'field_member_referring',
+      ];
+      $deferred_any = FALSE;
+      foreach ($deferred_fields as $deferred_field) {
+        if (isset($form[$deferred_field])) {
+          $form[$deferred_field]['#access'] = FALSE;
+          $deferred_any = TRUE;
+        }
+      }
+      if ($deferred_any) {
+        $form['profile_membership_deferred_note'] = [
+          '#type' => 'container',
+          '#weight' => 100,
+          '#attributes' => ['class' => ['messages', 'messages--status']],
+          'content' => [
+            '#markup' => t('Just the essentials for now — you can add a bio, your interests, and more to your profile any time after your orientation.'),
+          ],
+        ];
+      }
+    }
   }
 
   // The address field was deprecated for CiviCRM and removed from this form
@@ -286,4 +325,43 @@ function profile_membership_is_member_self_profile_edit(EntityInterface $entity,
 
   $owner = $entity->getOwner();
   return $owner && (int) $owner->id() === (int) $account->id();
+}
+
+/**
+ * Whether the member has an active door badge (i.e. has been to orientation).
+ *
+ * Mirrors MemberSuccessSnapshotBuilder::loadDoorBadgeStatus(): the most recent
+ * door badge_request for the user, checked for status 'active'. Used to decide
+ * whether a member self-editing their profile is still onboarding
+ * (pre-orientation) and should see only the essential fields. Kept as a direct
+ * query so this module carries no hard dependency on makerspace_member_success.
+ *
+ * @param int $uid
+ *   The member's user id.
+ *
+ * @return bool
+ *   TRUE when the member holds an active door badge.
+ */
+function _profile_membership_member_has_door_access(int $uid): bool {
+  if ($uid <= 0) {
+    return FALSE;
+  }
+  // Door access badge taxonomy term. Matches the makerspace_member_success
+  // door_badge_tid default (1519); read from that config when available so the
+  // two never drift, with the shared default as the fallback.
+  $door_badge_tid = (int) (\Drupal::config('makerspace_member_success.settings')->get('door_badge_tid') ?? 1519);
+
+  $query = \Drupal::database()->select('node_field_data', 'n');
+  $query->leftJoin('node__field_badge_status', 'status', 'status.entity_id = n.nid AND status.deleted = 0');
+  $query->addField('status', 'field_badge_status_value', 'status');
+  $query->innerJoin('node__field_member_to_badge', 'member', 'member.entity_id = n.nid AND member.deleted = 0');
+  $query->innerJoin('node__field_badge_requested', 'badge', 'badge.entity_id = n.nid AND badge.deleted = 0');
+  $query->condition('n.type', 'badge_request');
+  $query->condition('n.status', 1);
+  $query->condition('member.field_member_to_badge_target_id', $uid);
+  $query->condition('badge.field_badge_requested_target_id', $door_badge_tid);
+  $query->orderBy('n.created', 'DESC');
+  $query->range(0, 1);
+
+  return ($query->execute()->fetchField() ?: NULL) === 'active';
 }
