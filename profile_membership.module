@@ -95,6 +95,11 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
       }
     }
 
+    // Show a phone-format example so members know the expected shape.
+    if (isset($form['field_preferred_phone']['widget'][0]['value'])) {
+      $form['field_preferred_phone']['widget'][0]['value']['#placeholder'] = '203-555-5555';
+    }
+
     // Onboarding profile shrink. A member who has not yet been to orientation
     // (no active door badge) is trying to finish setup, not curate a community
     // profile — and this step is the join funnel's biggest drop-out (funnel
@@ -105,6 +110,10 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
     // so nothing is lost — just resequenced to when they are invested.
     if ($entity instanceof ProfileInterface
       && !_profile_membership_member_has_door_access((int) $entity->getOwnerId())) {
+      // field_member_areas_interest IS deferred here — it is now captured at the
+      // end of signup on the thank-you page (interests_civi_bridge picker), which
+      // drives Slack routing + the weekly digest. It reappears on this form once
+      // the member is door-active, for later editing.
       $deferred_fields = [
         'field_member_bio', 'field_member_instagram', 'field_member_discovery',
         'field_member_discovery_event_det', 'field_member_areas_interest',
@@ -128,7 +137,7 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
           '#weight' => 100,
           '#attributes' => ['class' => ['messages', 'messages--status']],
           'content' => [
-            '#markup' => t('Just the essentials for now — you can add a bio, your interests, and more to your profile any time after your orientation.'),
+            '#markup' => t('Just the essentials for now — you can add a bio and more to your profile any time after your orientation.'),
           ],
         ];
       }
