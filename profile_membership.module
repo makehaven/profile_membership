@@ -110,14 +110,15 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
     // so nothing is lost — just resequenced to when they are invested.
     if ($entity instanceof ProfileInterface
       && !_profile_membership_member_has_door_access((int) $entity->getOwnerId())) {
-      // field_member_areas_interest IS deferred here — it is now captured at the
-      // end of signup on the thank-you page (interests_civi_bridge picker), which
-      // drives Slack routing + the weekly digest. It reappears on this form once
-      // the member is door-active, for later editing.
+      // NOT deferred: field_member_goal / field_member_goal_other stay on the
+      // profile form — the member's goal is collected here during signup (it
+      // feeds the finance/entrepreneur/year-review dashboards). Interests
+      // (field_member_areas_interest) ARE deferred — captured at the end of
+      // signup on the thank-you page (interests_civi_bridge picker) for Slack +
+      // digest, and they reappear here once the member is door-active.
       $deferred_fields = [
         'field_member_bio', 'field_member_instagram', 'field_member_discovery',
         'field_member_discovery_event_det', 'field_member_areas_interest',
-        'field_member_goal', 'field_member_goal_other',
         'field_member_occupation_type', 'field_member_company',
         'field_member_company_title', 'field_member_school', 'field_member_links',
         'field_member_characteristics', 'field_member_contact_methood',
