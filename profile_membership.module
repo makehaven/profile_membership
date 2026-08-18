@@ -100,6 +100,49 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
       $form['field_preferred_phone']['widget'][0]['value']['#placeholder'] = '203-555-5555';
     }
 
+    // Contact fields: required at join, prompted afterwards.
+    //
+    // These three used to be `required: TRUE` at the field level, which made
+    // them a lock rather than a question. 115 of 858 active members (13.4%,
+    // measured on live 2026-08-17) were missing at least one and so could not
+    // save *any* profile edit — a bio, a headshot, an interest — until they
+    // filled in an emergency contact nobody had asked them for. That is what
+    // turned every "you can add this later" path in onboarding into a dead
+    // end, and it was routinely misread as "the bio field is required".
+    //
+    // The field config is now optional (field.field.profile.main.* in the
+    // site repo) and the requirement is asserted here instead, on the join
+    // path only — the same has-no-door-badge condition the deferral below
+    // uses. A member who is already in the building gets a prompt and a
+    // one-question form (profile_membership.emergency_contact), not a wall.
+    $needs_door_badge = $entity instanceof ProfileInterface
+      && !_profile_membership_member_has_door_access((int) $entity->getOwnerId());
+
+    if ($needs_door_badge) {
+      foreach (_profile_membership_contact_fields() as $contact_field) {
+        if (isset($form[$contact_field]['widget'][0]['value'])) {
+          $form[$contact_field]['widget'][0]['value']['#required'] = TRUE;
+          $form[$contact_field]['widget']['#required'] = TRUE;
+        }
+      }
+    }
+    elseif ($entity instanceof ProfileInterface
+      && _profile_membership_missing_contact_fields($entity)) {
+      // Established member with a gap. Ask, visibly, without blocking the
+      // save they actually came here to make.
+      $form['profile_membership_contact_gap'] = [
+        '#type' => 'container',
+        '#weight' => -99,
+        '#attributes' => ['class' => ['messages', 'messages--warning']],
+        'content' => [
+          '#markup' => '<strong>' . t('We do not have an emergency contact for you.') . '</strong> '
+          . t('If something happened to you here, we would have no one to call. Please <a href=":url">add one now</a> — it takes a moment.', [
+            ':url' => Url::fromRoute('profile_membership.emergency_contact')->toString(),
+          ]),
+        ],
+      ];
+    }
+
     // Onboarding profile shrink. A member who has not yet been to orientation
     // (no active door badge) is trying to finish setup, not curate a community
     // profile — and this step is the join funnel's biggest drop-out (funnel
@@ -194,6 +237,15 @@ function profile_membership_makerspace_user_links_links(UserInterface $account, 
   }
 
   return [
+    [
+      'id' => 'emergency_contact',
+      'audience' => 'member',
+      'title' => t('Emergency Contact'),
+      'route_name' => 'profile_membership.emergency_contact',
+      'category' => t('Quick Links'),
+      'weight' => -86,
+      'description' => t('Who we call if something happens to you here.'),
+    ],
     [
       'id' => 'update_mailing_address',
       // UserLinkManager::collectLinks() filters by this key (defaults to
@@ -347,6 +399,41 @@ function profile_membership_is_member_self_profile_edit(EntityInterface $entity,
 
   $owner = $entity->getOwner();
   return $owner && (int) $owner->id() === (int) $account->id();
+}
+
+/**
+ * The three contact fields asserted at join and prompted for afterwards.
+ *
+ * Kept in one place so the form alter, the standalone capture form and the
+ * "do they have a gap" check can never drift apart.
+ *
+ * @return string[]
+ *   Machine names of the contact fields on profile.main.
+ */
+function _profile_membership_contact_fields(): array {
+  return [
+    'field_emergency_contact_name',
+    'field_emergency_contact_phone',
+    'field_preferred_phone',
+  ];
+}
+
+/**
+ * Whether a main profile is missing any of the contact fields.
+ *
+ * @param \Drupal\profile\Entity\ProfileInterface $profile
+ *   The profile to check.
+ *
+ * @return bool
+ *   TRUE when at least one contact field is empty.
+ */
+function _profile_membership_missing_contact_fields(ProfileInterface $profile): bool {
+  foreach (_profile_membership_contact_fields() as $field) {
+    if (!$profile->hasField($field) || $profile->get($field)->isEmpty()) {
+      return TRUE;
+    }
+  }
+  return FALSE;
 }
 
 /**

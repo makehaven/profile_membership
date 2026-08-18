@@ -22,6 +22,14 @@ profile_membership.update_address:
   requirements:
     _user_is_logged_in: 'TRUE'
 
+profile_membership.emergency_contact:
+  path: '/membership/emergency-contact'
+  defaults:
+    _form: '\Drupal\profile_membership\Form\EmergencyContactForm'
+    _title: 'Your Emergency Contact'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
 profile_membership.settings:
   path: '/admin/config/makerspace/profile-membership'
   defaults:
