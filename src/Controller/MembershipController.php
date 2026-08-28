@@ -27,6 +27,13 @@ class MembershipController extends ControllerBase {
     $user = $users ? reset($users) : NULL;
 
     if (!$user) {
+      // Chargebee hands the address to us as ?email=, but the register form
+      // prefills and locks it from ?mail= — so forwarding the params verbatim
+      // dropped the address and made the joining member retype it, unlocked.
+      // The lock matters: chargebee_status_sync matches the subscription
+      // webhook to the account by this address, so an edited one orphans the
+      // payment. Send the spelling the form reads, and keep the original.
+      $query_params['mail'] = $email;
       $url = Url::fromRoute('user.register', [], ['query' => $query_params]);
       return new RedirectResponse($url->toString());
     }
