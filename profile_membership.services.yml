@@ -4,3 +4,12 @@ services:
     arguments:
       - '@account_switcher'
       - '@logger.factory'
+
+  profile_membership.handoff_subscriber:
+    class: Drupal\profile_membership\EventSubscriber\MembershipHandoffSubscriber
+    arguments:
+      - '@current_user'
+      - '@entity_type.manager'
+      - '@messenger'
+    tags:
+      - { name: event_subscriber }

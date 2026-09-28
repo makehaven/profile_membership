@@ -4,7 +4,10 @@ profile_membership.initiate:
     _controller: '\Drupal\profile_membership\Controller\MembershipController::initiate'
     _title: 'Starting Membership'
   requirements:
-    _permission: 'access content'
+    # Public by design: the Chargebee return for an existing account lands
+    # here before anyone is logged in, and it does nothing but look up the
+    # email and send the visitor to log in.
+    _access: 'TRUE'
 
 profile_membership.finalize:
   path: '/membership-finalize'

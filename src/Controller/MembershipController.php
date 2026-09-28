@@ -38,6 +38,12 @@ class MembershipController extends ControllerBase {
       return new RedirectResponse($url->toString());
     }
 
+    // Connect the payment now, before the login step. It no longer depends
+    // on the member getting through login (a password reset in the middle
+    // loses the destination), and it is safe to do for an anonymous visitor:
+    // the customer comes from Chargebee's email index, never from the URL.
+    $this->linkPayment($user, $request);
+
     $expected_uid = $user->id();
     $current_user = $this->currentUser();
     $session->set('membership_chargebee_params', $query_params);
@@ -52,7 +58,7 @@ class MembershipController extends ControllerBase {
       $this->messenger()->addWarning($this->t('You are logged in as a different user. Please log in with the correct account to complete your membership.'));
     }
     else {
-      $this->messenger()->addStatus($this->t('Please log in to complete your membership setup.'));
+      $this->messenger()->addStatus($this->t('Your payment went through, and you already have a MakeHaven account with this email. Log in to finish joining. Forgot your password? Use the reset link below the form.'));
     }
 
     $login_url = Url::fromRoute('user.login', [], ['query' => ['destination' => '/membership-finalize']]);
@@ -92,7 +98,13 @@ class MembershipController extends ControllerBase {
       return $this->redirect('<front>');
     }
 
-    if (!$account->hasRole('member_pending_approval')) {
+    // Enter onboarding and staff approval, unless the account already holds a
+    // membership role: an active member who paid again must not be demoted
+    // into the approval queue.
+    $membership_roles = function_exists('_chargebee_status_sync_membership_roles')
+      ? _chargebee_status_sync_membership_roles()
+      : ['member', 'member_pending_approval'];
+    if (!array_intersect($membership_roles, $account->getRoles())) {
       $account->addRole('member_pending_approval');
       $account->save();
     }
@@ -102,6 +114,33 @@ class MembershipController extends ControllerBase {
     $profile_url = Url::fromUserInput('/user/' . $account->id() . '/main', ['query' => $query]);
 
     return new RedirectResponse($profile_url->toString());
+  }
+
+  /**
+   * Links an existing account to the Chargebee customer paying under its email.
+   *
+   * Flood-limited per client, because each call spends several Chargebee API
+   * requests and a burst trips Chargebee's rate limit for the whole site.
+   */
+  protected function linkPayment($account, Request $request): void {
+    if (!\Drupal::hasService('chargebee_fetch_data.plan_reconciler')) {
+      return;
+    }
+    $flood = \Drupal::flood();
+    if (!$flood->isAllowed('profile_membership.link_payment', 10, 3600)) {
+      return;
+    }
+    $flood->register('profile_membership.link_payment', 3600);
+    try {
+      \Drupal::service('chargebee_fetch_data.plan_reconciler')->linkReturningAccount($account);
+    }
+    catch (\Throwable $e) {
+      // The backstop sweep and staff can still connect it; never block login.
+      $this->getLogger('profile_membership')->error('Linking uid @uid to Chargebee at membership hand-off failed: @message', [
+        '@uid' => $account->id(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
   }
 
   protected function clearMembershipSession($session) {
