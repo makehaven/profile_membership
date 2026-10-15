@@ -40,3 +40,42 @@ profile_membership.settings:
     _title: 'Profile Membership Settings'
   requirements:
     _permission: 'administer profile membership settings'
+
+# Year-end mailing-address confirmation (2026). Member path from the
+# member-attention strip; /address/confirm is the CiviMail checksum link and
+# is public by design: the cid + cs checksum is the credential.
+profile_membership.address_confirm:
+  path: '/membership/address/confirm'
+  defaults:
+    _form: '\Drupal\profile_membership\Form\AddressConfirmForm'
+    _title: 'Confirm your mailing address'
+    mode: 'member'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+profile_membership.address_confirm_link:
+  path: '/address/confirm'
+  defaults:
+    _form: '\Drupal\profile_membership\Form\AddressConfirmForm'
+    _title: 'Confirm your mailing address'
+    mode: 'link'
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE
+
+profile_membership.address_thanks:
+  path: '/address/thanks'
+  defaults:
+    _controller: '\Drupal\profile_membership\Controller\AddressCampaignController::thanks'
+    _title: 'Thank you'
+  requirements:
+    _access: 'TRUE'
+
+profile_membership.checkin:
+  path: '/membership/check-in'
+  defaults:
+    _controller: '\Drupal\profile_membership\Controller\AddressCampaignController::checkin'
+    _title: 'A few quick questions'
+  requirements:
+    _user_is_logged_in: 'TRUE'

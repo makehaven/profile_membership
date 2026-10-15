@@ -23,3 +23,25 @@ function profile_membership_update_9001(): void {
     ->save();
 }
 
+
+/**
+ * Year-end address confirmation: CiviCRM fields and campaign settings.
+ *
+ * Creates the Address_Confirmation custom group on Contact (Confirmed on,
+ * Response) and switches the 2026 campaign on from 2026-10-15. The site's
+ * config sync carries the same settings, so a later cim keeps them.
+ */
+function profile_membership_update_9002(): string {
+  \Drupal::service('profile_membership.address_campaign')->ensureCustomFields();
+
+  $config = \Drupal::configFactory()->getEditable('profile_membership.settings');
+  if (!$config->get('address_campaign')) {
+    $config->set('address_campaign', [
+      'enabled' => TRUE,
+      'start' => '2026-10-15',
+      'snooze_days' => 7,
+      'checkin_webform' => 'year_end_checkin_2026',
+    ])->save();
+  }
+  return 'Address confirmation fields created; campaign settings set.';
+}

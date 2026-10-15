@@ -28,3 +28,19 @@ profile_membership.settings:
       type: text
       label: 'Entrepreneurship email body'
 
+    address_campaign:
+      type: mapping
+      label: 'Mailing-address confirmation campaign'
+      mapping:
+        enabled:
+          type: boolean
+          label: 'Ask members to confirm their mailing address'
+        start:
+          type: string
+          label: 'Campaign start date (Y-m-d); answers before it count as stale'
+        snooze_days:
+          type: integer
+          label: 'Days to hide the prompt after "Not now"'
+        checkin_webform:
+          type: string
+          label: 'Webform id for the year-end check-in answers'

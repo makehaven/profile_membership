@@ -48,3 +48,39 @@ the capture form and `_profile_membership_missing_contact_fields()` all read it.
 > A deferred field needs its own active capture moment or it is not collected.
 > Re-adding these to the join form is not the fix — that is what was already
 > being done, and it is what locked people out.
+
+## Mailing-address confirmation (year-end appeal)
+
+Before a postal appeal, members and donors are asked whether the address in
+CiviCRM is still right. Settings: `profile_membership.settings:address_campaign`
+(`enabled`, `start` as Y-m-d, `snooze_days`, `checkin_webform`). An answer
+dated before `start` counts as stale, so next year's campaign only needs a new
+start date and check-in webform.
+
+- **Members** see "Is your mailing address still right?" in the member-attention
+  strip on `/member/resources` (`hook_makerspace_member_attention()`), linking to
+  `/membership/address/confirm`. The item clears on any answer. "Not now" hides
+  it for `snooze_days`. Members who are already `do_not_mail` are not asked.
+- **Donors who are not members** get a CiviMail with a checksum link to
+  `/address/confirm?cid=…&cs=…` (no login). Build the recipient groups with
+  `drush pm-address-groups` (dry run; `--apply` writes; `--since`,
+  `--personal-min`). Re-running before a reminder leaves only non-responders.
+  Donors at or above `--personal-min` go to a staff "personal mail" group and
+  are kept out of the email.
+- **The form** has "Yes, this is correct", an update panel, and a small "Don't
+  send me mail" button. That button opens a confirm step, because it sets CiviCRM
+  `do_not_mail`, which stops **all** postal mail.
+- **Recorded on the contact:** custom group `Address_Confirmation` (`Confirmed_on`,
+  `Response`: confirmed / updated / no_mail), created by update 9002. Logged-in
+  answers are mirrored to user.data (`address_confirmed`) so the strip can skip
+  CiviCRM.
+- **Step 2 for members** is `/membership/check-in`. It is the successor to the 2025
+  survey's profile-update blocks. It asks only what is still blank:
+  - volunteer ways and availability (`makehaven_tasks` "How I like to help")
+  - employer (`field_member_company`)
+  - emergency contact
+  - "This year MakeHaven helped me to…" plus a story with share permission, saved
+    to the `checkin_webform` webform
+
+  Nothing is overwritten, and when nothing is left to ask the page goes straight
+  back to resources.

@@ -27,3 +27,8 @@ entrepreneurship_email_body: |-
 
   — The MakeHaven Team
 
+address_campaign:
+  enabled: false
+  start: ''
+  snooze_days: 7
+  checkin_webform: ''

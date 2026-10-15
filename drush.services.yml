@@ -5,3 +5,11 @@ services:
       - '@entity_type.manager'
     tags:
       - { name: drush.command }
+
+  profile_membership.commands.address_campaign:
+    class: Drupal\profile_membership\Commands\AddressCampaignCommands
+    arguments:
+      - '@database'
+      - '@profile_membership.address_campaign'
+    tags:
+      - { name: drush.command }

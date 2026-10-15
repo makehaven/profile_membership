@@ -13,6 +13,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\profile\Entity\ProfileInterface;
+use Drupal\profile_membership\Service\AddressCampaign;
 use Drupal\user\UserInterface;
 
 /**
@@ -256,6 +257,48 @@ function profile_membership_makerspace_user_links_links(UserInterface $account, 
       'category' => t('Quick Links'),
       'weight' => -85,
       'description' => t('Update the mailing address we have on file.'),
+    ],
+  ];
+}
+
+/**
+ * Implements hook_makerspace_member_attention().
+ *
+ * Year-end mailing-address confirmation: asks members who have not answered
+ * since the campaign start (profile_membership.settings:address_campaign).
+ * Clears on any answer (confirmed, updated, no mail) and hides for the
+ * snooze period after "Not now".
+ */
+function profile_membership_makerspace_member_attention(AccountInterface $account): array {
+  try {
+    /** @var \Drupal\profile_membership\Service\AddressCampaign $campaign */
+    $campaign = \Drupal::service('profile_membership.address_campaign');
+    if (!$campaign->isEnabled() || !in_array('member', $account->getRoles(), TRUE)) {
+      return [];
+    }
+    $contact_id = \Drupal::service('profile_membership.address_sync_manager')->resolveContactId($account);
+    if (!$campaign->shouldPrompt($account, $contact_id)) {
+      return [];
+    }
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('profile_membership')->warning('Member attention (address) failed: @m', ['@m' => $e->getMessage()]);
+    return [];
+  }
+
+  return [
+    [
+      'id' => 'address_confirm',
+      'severity' => 'info',
+      'message' => t('We are sending year-end mail soon. Is your mailing address still right?'),
+      'action_label' => t('Check my address'),
+      'action_url' => Url::fromRoute('profile_membership.address_confirm'),
+      'icon' => 'envelope',
+      'weight' => 20,
+      'cache_tags' => [
+        AddressCampaign::cacheTag((int) $account->id()),
+        'config:profile_membership.settings',
+      ],
     ],
   ];
 }

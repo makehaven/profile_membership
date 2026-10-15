@@ -13,3 +13,12 @@ services:
       - '@messenger'
     tags:
       - { name: event_subscriber }
+
+  profile_membership.address_campaign:
+    class: Drupal\profile_membership\Service\AddressCampaign
+    arguments:
+      - '@config.factory'
+      - '@user.data'
+      - '@account_switcher'
+      - '@datetime.time'
+      - '@logger.factory'
