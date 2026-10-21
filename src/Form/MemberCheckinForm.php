@@ -26,7 +26,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * - volunteer: makehaven_tasks "How I like to help" (user.data), 3 of 870
  *   members had answered on 2026-10-14.
  * - employer: profile.main field_member_company (company terms, auto-create;
- *   profile_company_civi_bridge syncs it to CiviCRM). Matching gifts.
+ *   profile_company_civi_bridge syncs it to CiviCRM). Employer partnerships:
+ *   group memberships and sponsorship prospects. (Employers don't match
+ *   dues, so the member-facing copy doesn't promise matching gifts.)
  * - emergency: the emergency contact fields, as EmergencyContactForm.
  * - year: "This year MakeHaven helped me to…" + story, saved as a
  *   submission of the configured check-in webform.
@@ -146,7 +148,7 @@ final class MemberCheckinForm extends FormBase {
       $form['employer']['company'] = [
         '#type' => 'entity_autocomplete',
         '#title' => $this->t('Employer or company (optional)'),
-        '#description' => $this->t('Many employers match their employees’ donations. Knowing yours helps us ask them, not you.'),
+        '#description' => $this->t('We partner with local employers on group memberships, team workshops, and sponsorship. Knowing where members work helps us build those connections.'),
         '#target_type' => 'taxonomy_term',
         '#selection_settings' => ['target_bundles' => ['company' => 'company']],
         '#autocreate' => ['bundle' => 'company'],
