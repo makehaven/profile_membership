@@ -72,7 +72,7 @@ class MembershipHandoffSubscriber implements EventSubscriberInterface {
       // Signed in as one address, paid as another that has no account. There
       // is nothing safe to link automatically; say so plainly instead of
       // dropping them on their account page with no word about the payment.
-      $this->messenger->addWarning($this->t('Your payment went through as @paid, but you are signed in as @current. To finish joining, sign out and open the link from your payment again, or email membership@makehaven.org and we will connect it for you.', [
+      $this->messenger->addWarning($this->t('Your payment went through as @paid, but you are signed in as @current. To finish joining, sign out and open the link from your payment again, or email member-care@makehaven.org and we will connect it for you.', [
         '@paid' => $email,
         '@current' => $this->currentUser->getEmail(),
       ]));
