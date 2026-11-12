@@ -67,7 +67,16 @@ final class AddressConfirmForm extends FormBase {
     if (!$form_state->has('contact_id')) {
       $form_state->set('mode', $mode);
       $form_state->set('contact_id', $this->resolveContact($mode));
+      // The year-end email has two buttons on the same checksum link:
+      // ?answer=yes and ?answer=fix. "Fix" opens straight onto the address
+      // fields. Opening the page never records an answer: mail scanners
+      // follow every link, so only a pressed button counts.
+      $form_state->set('answer', (string) $this->getRequest()->query->get('answer'));
+      if ($form_state->get('answer') === 'fix') {
+        $form_state->set('edit_open', TRUE);
+      }
     }
+    $fixing = $form_state->get('answer') === 'fix';
     $contact_id = (int) $form_state->get('contact_id');
 
     if ($contact_id <= 0) {
@@ -88,7 +97,21 @@ final class AddressConfirmForm extends FormBase {
     $form_state->set('has_address', $has_address);
     $form_state->set('current', $current);
 
-    if ($has_address) {
+    if ($has_address && $fixing) {
+      $form['intro'] = [
+        '#markup' => '<p>' . $this->t('Please enter the address where we should send your year-end mail. This is the one we have now:') . '</p>',
+      ];
+      $form['current'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'address',
+        '#value' => $this->formatAddress($current),
+        '#attributes' => ['class' => ['text-muted', 'mb-3']],
+      ];
+      $form['edit'] = [
+        '#type' => 'container',
+      ];
+    }
+    elseif ($has_address) {
       $form['intro'] = [
         '#markup' => '<p>' . $this->t('We are getting ready to send our year-end mail. Is this still the best address to reach you?') . '</p>',
       ];
@@ -123,11 +146,14 @@ final class AddressConfirmForm extends FormBase {
     }
 
     $form['edit'] += $this->addressFields($current);
+    if ($fixing || !$has_address) {
+      $form['edit']['address_line1']['#attributes']['autofocus'] = 'autofocus';
+    }
     $form['edit']['update'] = [
       '#type' => 'submit',
       '#value' => $has_address ? $this->t('Save new address') : $this->t('Save address'),
       '#name' => 'op_update',
-      '#button_type' => $has_address ? '' : 'primary',
+      '#button_type' => ($has_address && !$fixing) ? '' : 'primary',
       '#submit' => ['::submitUpdate'],
     ];
 
@@ -290,6 +316,22 @@ final class AddressConfirmForm extends FormBase {
    * Submit for "Save (new) address".
    */
   public function submitUpdate(array &$form, FormStateInterface $form_state): void {
+    // Came in on "Fix my address" but saved what we already had: that is a
+    // confirmation, and recording it as an update would misreport it.
+    $current = (array) $form_state->get('current');
+    if (!empty($form_state->get('has_address'))) {
+      $same = TRUE;
+      foreach (['address_line1', 'address_line2', 'city', 'state', 'postal_code'] as $key) {
+        if (trim((string) $form_state->getValue($key)) !== trim((string) ($current[$key] ?? ''))) {
+          $same = FALSE;
+          break;
+        }
+      }
+      if ($same) {
+        $this->finish($form_state, AddressCampaign::RESPONSE_CONFIRMED, $this->t('Thank you for confirming your address.'));
+        return;
+      }
+    }
     $saved = $this->addressSyncManager->savePrimaryAddress((int) $form_state->get('contact_id'), [
       'address_line1' => $form_state->getValue('address_line1'),
       'address_line2' => $form_state->getValue('address_line2'),
