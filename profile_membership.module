@@ -137,7 +137,7 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
         '#attributes' => ['class' => ['messages', 'messages--warning']],
         'content' => [
           '#markup' => '<strong>' . t('We do not have an emergency contact for you.') . '</strong> '
-          . t('If something happened to you here, we would have no one to call. Please <a href=":url">add one now</a> — it takes a moment.', [
+          . t('You have no emergency contact on file. Please <a href=":url">add one now</a>.', [
             ':url' => Url::fromRoute('profile_membership.emergency_contact')->toString(),
           ]),
         ],
@@ -182,7 +182,7 @@ function profile_membership_form_alter(array &$form, FormStateInterface $form_st
           '#weight' => 100,
           '#attributes' => ['class' => ['messages', 'messages--status']],
           'content' => [
-            '#markup' => t('Just the essentials for now — you can add a bio and more to your profile any time after your orientation.'),
+            '#markup' => t('You can add a bio and more to your profile any time after your orientation.'),
           ],
         ];
       }
