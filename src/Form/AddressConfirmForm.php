@@ -29,10 +29,17 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class AddressConfirmForm extends FormBase {
 
+  /**
+   * Plain protected properties, not private readonly: the form object is
+   * serialized into the form cache whenever it rebuilds (the "no mail" step,
+   * a failed save), and FormBase's DependencySerializationTrait can only
+   * restore properties it can see and write. Private readonly ones came back
+   * uninitialized, so the second press of any button crashed (2026-11-16).
+   */
   public function __construct(
-    private readonly AddressSyncManager $addressSyncManager,
-    private readonly AddressCampaign $campaign,
-    private readonly AccountInterface $currentUser,
+    protected AddressSyncManager $addressSyncManager,
+    protected AddressCampaign $campaign,
+    protected AccountInterface $currentUser,
   ) {}
 
   /**
@@ -192,8 +199,14 @@ final class AddressConfirmForm extends FormBase {
       . $this->t('That includes our year-end letter, gift receipts sent by post, and anything else we would mail you. Email from us is not affected. You can change your mind any time by emailing <a href=":mail">info@makehaven.org</a>.', [':mail' => 'mailto:info@makehaven.org'])
       . '</p>',
     ];
-    $form['actions'] = ['#type' => 'actions'];
-    $form['actions']['no_mail_confirm'] = [
+    // A plain container, not '#type' => 'actions': the member theme (Gin)
+    // lifts a form's 'actions' into its sticky top bar, and when this step is
+    // left with Cancel the top bar still expects them and the page errors.
+    $form['step_actions'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['form-actions', 'd-flex', 'gap-2']],
+    ];
+    $form['step_actions']['no_mail_confirm'] = [
       '#type' => 'submit',
       '#value' => $this->t('Yes, stop all mail'),
       '#name' => 'op_no_mail_confirm',
@@ -201,7 +214,7 @@ final class AddressConfirmForm extends FormBase {
       '#limit_validation_errors' => [],
       '#submit' => ['::submitNoMailConfirm'],
     ];
-    $form['actions']['cancel'] = [
+    $form['step_actions']['cancel'] = [
       '#type' => 'submit',
       '#value' => $this->t('Cancel'),
       '#name' => 'op_cancel',
@@ -213,26 +226,72 @@ final class AddressConfirmForm extends FormBase {
   }
 
   /**
+   * The address fields the visitor actually edited.
+   *
+   * Compares what was submitted with what each field was prefilled with,
+   * not with the stored address: an address stored without a state still
+   * shows "CT" in the State box, so comparing with the stored value said
+   * every such member had changed their address when they pressed "Yes,
+   * this is correct" (Lior, 2026-11-16). Spaces and letter case are ignored.
+   *
+   * @param array $input
+   *   The raw submitted values.
+   * @param array $current
+   *   The stored address, as loadPrimaryAddress() returns it.
+   *
+   * @return string[]
+   *   Keys of the fields that differ; empty when nothing was edited.
+   */
+  public static function changedFields(array $input, array $current): array {
+    $defaults = self::fieldDefaults($current);
+    $norm = static fn($v): string => mb_strtolower(trim((string) preg_replace('/\s+/', ' ', (string) $v)));
+    $changed = [];
+    foreach ($defaults as $key => $default) {
+      if (array_key_exists($key, $input) && $norm($input[$key]) !== $norm($default)) {
+        $changed[] = $key;
+      }
+    }
+    return $changed;
+  }
+
+  /**
+   * What each address field is prefilled with.
+   *
+   * @return array<string, string>
+   *   Keyed by field name.
+   */
+  public static function fieldDefaults(array $current): array {
+    return [
+      'address_line1' => (string) ($current['address_line1'] ?? ''),
+      'address_line2' => (string) ($current['address_line2'] ?? ''),
+      'city' => (string) ($current['city'] ?? ''),
+      'state' => (string) (($current['state'] ?? '') ?: 'CT'),
+      'postal_code' => (string) ($current['postal_code'] ?? ''),
+    ];
+  }
+
+  /**
    * Address fields, prefilled from CiviCRM.
    */
   private function addressFields(array $current): array {
+    $defaults = self::fieldDefaults($current);
     return [
       'address_line1' => [
         '#type' => 'textfield',
         '#title' => $this->t('Street address'),
-        '#default_value' => $current['address_line1'] ?? '',
+        '#default_value' => $defaults['address_line1'],
         '#maxlength' => 255,
       ],
       'address_line2' => [
         '#type' => 'textfield',
         '#title' => $this->t('Apartment, suite, unit (optional)'),
-        '#default_value' => $current['address_line2'] ?? '',
+        '#default_value' => $defaults['address_line2'],
         '#maxlength' => 255,
       ],
       'city' => [
         '#type' => 'textfield',
         '#title' => $this->t('City'),
-        '#default_value' => $current['city'] ?? '',
+        '#default_value' => $defaults['city'],
         '#maxlength' => 255,
       ],
       'state' => [
@@ -240,12 +299,12 @@ final class AddressConfirmForm extends FormBase {
         '#title' => $this->t('State'),
         '#options' => AddressSyncManager::US_STATES,
         '#empty_option' => $this->t('- Select -'),
-        '#default_value' => ($current['state'] ?? '') ?: 'CT',
+        '#default_value' => $defaults['state'],
       ],
       'postal_code' => [
         '#type' => 'textfield',
         '#title' => $this->t('ZIP code'),
-        '#default_value' => $current['postal_code'] ?? '',
+        '#default_value' => $defaults['postal_code'],
         '#size' => 12,
         '#maxlength' => 10,
       ],
@@ -299,15 +358,11 @@ final class AddressConfirmForm extends FormBase {
   public function submitConfirm(array &$form, FormStateInterface $form_state): void {
     // Enter in an edit field submits with the first button, which is this
     // one. Don't stamp the old address as confirmed over unsaved edits.
-    $input = $form_state->getUserInput();
-    $current = (array) $form_state->get('current');
-    foreach (['address_line1', 'address_line2', 'city', 'state', 'postal_code'] as $key) {
-      if (isset($input[$key]) && trim((string) $input[$key]) !== trim((string) ($current[$key] ?? ''))) {
-        $this->messenger()->addWarning($this->t('You changed the address. Press "Save new address" to keep the change.'));
-        $form_state->set('edit_open', TRUE);
-        $form_state->setRebuild();
-        return;
-      }
+    if (self::changedFields($form_state->getUserInput(), (array) $form_state->get('current'))) {
+      $this->messenger()->addWarning($this->t('You changed the address. Press "Save new address" to keep the change.'));
+      $form_state->set('edit_open', TRUE);
+      $form_state->setRebuild();
+      return;
     }
     $this->finish($form_state, AddressCampaign::RESPONSE_CONFIRMED, $this->t('Thank you for confirming your address.'));
   }
