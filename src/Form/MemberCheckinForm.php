@@ -98,8 +98,12 @@ final class MemberCheckinForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state): array {
+  public function buildForm(array $form, FormStateInterface $form_state, string $done = ''): array {
     $profile = $this->loadMainProfile();
+    if (!$form_state->has('done')) {
+      $form_state->set('done', self::doneMessage($done) ? $done : '');
+    }
+    $done_message = self::doneMessage((string) $form_state->get('done'));
     $sections = $this->openSections($profile);
     if (!$sections) {
       // Nothing to ask: a redirect from buildForm is not possible, so the
@@ -113,7 +117,8 @@ final class MemberCheckinForm extends FormBase {
     $form_state->set('profile_id', $profile ? (int) $profile->id() : 0);
 
     $form['intro'] = [
-      '#markup' => '<p>' . $this->t('While you are here, a few quick questions. Answer what you like, or skip.') . '</p>',
+      '#markup' => '<p>' . ($done_message ? '<strong>' . $done_message . '</strong> ' : '')
+      . $this->t('While you are here, a few quick questions. Answer what you like, or skip.') . '</p>',
     ];
 
     if (in_array('volunteer', $sections, TRUE)) {
@@ -199,17 +204,22 @@ final class MemberCheckinForm extends FormBase {
       ];
     }
 
-    $form['actions'] = ['#type' => 'actions'];
-    $form['actions']['submit'] = [
+    // A plain container, not '#type' => 'actions': the member theme (Gin)
+    // lifts a form's 'actions' element into its sticky top bar (by that key),
+    // which put Save and Skip above the questions.
+    $form['checkin_actions'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['d-flex', 'gap-3', 'align-items-center', 'mt-3']],
+    ];
+    $form['checkin_actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Save'),
       '#button_type' => 'primary',
     ];
-    $form['actions']['skip'] = [
+    $form['checkin_actions']['skip'] = [
       '#type' => 'link',
       '#title' => $this->t('Skip'),
       '#url' => Url::fromUserInput('/member/resources'),
-      '#attributes' => ['class' => ['btn', 'btn-link']],
     ];
 
     return $form;
@@ -302,9 +312,28 @@ final class MemberCheckinForm extends FormBase {
       }
     }
 
-    $this->messenger()->addStatus($saved
-      ? $this->t('Thank you, that helps a lot.')
-      : $this->t('No problem. You can update these any time from your profile.'));
+    // One message about what actually happened. Saving with nothing filled
+    // in used to say "No problem. You can update these any time", which on
+    // Member Resources read as nonsense (Lior, 2026-11-17).
+    $parts = array_filter([
+      self::doneMessage((string) $form_state->get('done')),
+      $saved ? (string) $this->t('Thank you, your answers are saved.') : '',
+    ]);
+    if ($parts) {
+      $this->messenger()->addStatus(implode(' ', $parts));
+    }
+  }
+
+  /**
+   * What the address step just recorded, in words, or '' for anything else.
+   */
+  public static function doneMessage(string $done): string {
+    return match ($done) {
+      AddressCampaign::RESPONSE_CONFIRMED => (string) t('Your address is confirmed.'),
+      AddressCampaign::RESPONSE_UPDATED => (string) t('Your address is updated.'),
+      AddressCampaign::RESPONSE_NO_MAIL => (string) t('Done. We will not send you postal mail.'),
+      default => '',
+    };
   }
 
   /**

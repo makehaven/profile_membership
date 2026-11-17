@@ -19,10 +19,15 @@ final class AddressCampaignController extends ControllerBase {
    */
   public function checkin(): array|RedirectResponse {
     $form = \Drupal::classResolver(MemberCheckinForm::class);
+    // ?done=confirmed|updated|no_mail: what the address step just recorded.
+    $done = (string) \Drupal::request()->query->get('done');
     if (!$form->openSections($form->loadMainProfile())) {
+      if ($message = MemberCheckinForm::doneMessage($done)) {
+        $this->messenger()->addStatus($message);
+      }
       return new RedirectResponse(Url::fromUserInput('/member/resources')->toString());
     }
-    return $this->formBuilder()->getForm($form);
+    return $this->formBuilder()->getForm($form, $done);
   }
 
   /**

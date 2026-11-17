@@ -8,3 +8,9 @@ camera_capture:
   dependencies:
     - core/drupal
     - core/once
+
+address_campaign:
+  version: 1.x
+  css:
+    theme:
+      css/address-campaign.css: {}

@@ -1,0 +1,49 @@
+/**
+ * Quiet secondary actions on the year-end address page ("Not now",
+ * "Don't send me mail", "Cancel").
+ *
+ * The page renders in two themes: the member theme (makerspace_gin) paints
+ * every .btn solid red, and the public theme (Barrio) adds btn-primary btn-lg
+ * plus an icon to every submit. Either way a link-style button came out as a
+ * red box, and in Gin with red text on it (blank buttons, Lior 2026-11-17).
+ * Gin also forces `border: 2px ... !important` on `.button:not(:focus)`
+ * (0,2,0), so the selectors below are `form` + the class twice (0,2,1).
+ */
+.pm-quiet-action,
+form .pm-quiet-action.pm-quiet-action {
+  display: inline-block;
+  width: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0.25rem 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  color: var(--mh-color-brand-primary, #8b1919) !important;
+  font-size: 0.9375rem !important;
+  font-weight: 400 !important;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+form .pm-quiet-action.pm-quiet-action:hover,
+form .pm-quiet-action.pm-quiet-action:focus {
+  text-decoration-thickness: 2px;
+}
+
+form .pm-quiet-action.pm-quiet-action:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+form .pm-quiet-action.pm-quiet-action::before,
+form .pm-quiet-action.pm-quiet-action::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Bootstrap's gap utilities do not exist in the member theme. */
+form .pm-quiet-action.pm-quiet-action + .pm-quiet-action {
+  margin-inline-start: 1.5rem;
+}

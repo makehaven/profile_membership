@@ -65,6 +65,7 @@ final class AddressConfirmForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state, string $mode = 'member'): array {
     $form['#attributes']['class'][] = 'profile-membership-address-confirm';
+    $form['#attached']['library'][] = 'profile_membership/address_campaign';
     // Personal data on a URL an anonymous visitor can open: never let the
     // page cache or Pantheon's edge keep it (and a stale copy would show the
     // old address after an update).
@@ -164,6 +165,9 @@ final class AddressConfirmForm extends FormBase {
       '#submit' => ['::submitUpdate'],
     ];
 
+    // Quiet text-style buttons (css/address-campaign.css). The Bootstrap
+    // btn-link classes these had turned into red text on a red box in the
+    // member theme: blank buttons on live (Lior, 2026-11-17).
     $form['secondary'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mt-4', 'small', 'text-muted', 'd-flex', 'gap-3', 'flex-wrap']],
@@ -175,7 +179,7 @@ final class AddressConfirmForm extends FormBase {
         '#name' => 'op_snooze',
         '#limit_validation_errors' => [],
         '#submit' => ['::submitSnooze'],
-        '#attributes' => ['class' => ['btn', 'btn-link', 'btn-sm', 'p-0']],
+        '#attributes' => ['class' => ['pm-quiet-action']],
       ];
     }
     $form['secondary']['no_mail'] = [
@@ -184,7 +188,7 @@ final class AddressConfirmForm extends FormBase {
       '#name' => 'op_no_mail',
       '#limit_validation_errors' => [],
       '#submit' => ['::submitNoMailStart'],
-      '#attributes' => ['class' => ['btn', 'btn-link', 'btn-sm', 'p-0', 'text-muted']],
+      '#attributes' => ['class' => ['pm-quiet-action']],
     ];
 
     return $form;
@@ -220,7 +224,7 @@ final class AddressConfirmForm extends FormBase {
       '#name' => 'op_cancel',
       '#limit_validation_errors' => [],
       '#submit' => ['::submitBack'],
-      '#attributes' => ['class' => ['btn', 'btn-link']],
+      '#attributes' => ['class' => ['pm-quiet-action']],
     ];
     return $form;
   }
@@ -444,12 +448,14 @@ final class AddressConfirmForm extends FormBase {
       $form_state->setRebuild();
       return;
     }
-    $this->messenger()->addStatus($message);
     if ($mode === 'member') {
-      // Step 2: a few profile questions, each only if still blank.
-      $form_state->setRedirect('profile_membership.checkin');
+      // Step 2: a few profile questions, each only if still blank. The
+      // check-in page says what was just recorded, and repeats it at the end,
+      // so the last message a member sees is about their address.
+      $form_state->setRedirect('profile_membership.checkin', [], ['query' => ['done' => $response]]);
       return;
     }
+    $this->messenger()->addStatus($message);
     $form_state->setRedirect('profile_membership.address_thanks');
   }
 
