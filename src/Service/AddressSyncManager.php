@@ -433,4 +433,23 @@ final class AddressSyncManager {
     return $base;
   }
 
+  /**
+   * The stored ZIP as a form should prefill it, or '' when it is not a ZIP.
+   *
+   * About half the year-end mailing's contacts (117 of 254, 2026-11-16) have
+   * "United States" stored as their postal code, from an old import. Prefilled
+   * into a 10-character ZIP box, it failed Drupal's length check on every
+   * button, so "Yes, this is correct" and "Don't send me mail" reloaded the
+   * page with "1 error has been found: ZIP code" and saved nothing. A ZIP
+   * stored as four digits lost its leading zero (New England ZIPs start with
+   * 0), so it gets it back.
+   */
+  public static function prefillZip(string $stored): string {
+    $zip = trim($stored);
+    if (preg_match('/^\d{4}(-\d{4})?$/', $zip)) {
+      $zip = '0' . $zip;
+    }
+    return preg_match('/^\d{5}(-\d{4})?$/', $zip) ? $zip : '';
+  }
+
 }

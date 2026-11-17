@@ -106,7 +106,7 @@ final class UpdateAddressForm extends FormBase {
     $form['postal_code'] = [
       '#type' => 'textfield',
       '#title' => $this->t('ZIP code'),
-      '#default_value' => $current['postal_code'] ?? '',
+      '#default_value' => AddressSyncManager::prefillZip((string) ($current['postal_code'] ?? '')),
       '#required' => TRUE,
       '#size' => 12,
       '#maxlength' => 10,

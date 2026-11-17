@@ -266,7 +266,7 @@ final class AddressConfirmForm extends FormBase {
       'address_line2' => (string) ($current['address_line2'] ?? ''),
       'city' => (string) ($current['city'] ?? ''),
       'state' => (string) (($current['state'] ?? '') ?: 'CT'),
-      'postal_code' => (string) ($current['postal_code'] ?? ''),
+      'postal_code' => AddressSyncManager::prefillZip((string) ($current['postal_code'] ?? '')),
     ];
   }
 

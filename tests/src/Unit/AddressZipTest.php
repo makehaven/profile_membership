@@ -81,6 +81,32 @@ final class AddressZipTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::prefillZip
+   * @dataProvider prefillZipProvider
+   */
+  public function testPrefillZip(string $stored, string $expected): void {
+    $this->assertSame($expected, AddressSyncManager::prefillZip($stored));
+  }
+
+  /**
+   * Data for testPrefillZip(): what a stored postal code prefills as.
+   */
+  public static function prefillZipProvider(): array {
+    return [
+      'five digit' => ['06511', '06511'],
+      'ZIP+4' => ['06511-1234', '06511-1234'],
+      'surrounding whitespace' => [' 06511 ', '06511'],
+      'lost leading zero' => ['6511', '06511'],
+      'lost leading zero, ZIP+4' => ['6511-1234', '06511-1234'],
+      // 117 of 254 year-end recipients, 2026-11-16: blocked every button.
+      'country stored as ZIP' => ['United States', ''],
+      'other country' => ['Canada', ''],
+      'empty' => ['', ''],
+      'too short' => ['651', ''],
+    ];
+  }
+
+  /**
    * The state select must stay a sane, complete US list.
    */
   public function testUsStatesList(): void {
