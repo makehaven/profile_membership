@@ -46,6 +46,7 @@ class EntrepreneurshipEmailTest extends KernelTestBase {
     parent::setUp();
 
     $this->installEntitySchema('user');
+    $this->installSchema('user', ['users_data']);
     $this->installEntitySchema('profile');
     $this->installConfig(['profile_membership']);
 
@@ -61,8 +62,8 @@ class EntrepreneurshipEmailTest extends KernelTestBase {
       'cardinality' => -1,
       'settings' => [
         'allowed_values' => [
-          ['value' => 'entrepreneur', 'label' => 'Business entrepreneurship'],
-          ['value' => 'artist', 'label' => 'Create art'],
+          'entrepreneur' => 'Business entrepreneurship',
+          'artist' => 'Create art',
         ],
       ],
     ])->save();
@@ -80,8 +81,8 @@ class EntrepreneurshipEmailTest extends KernelTestBase {
       'cardinality' => -1,
       'settings' => [
         'allowed_values' => [
-          ['value' => 'serial_entrepreneur', 'label' => 'Serial entrepreneur'],
-          ['value' => 'patent', 'label' => 'Patent'],
+          'serial_entrepreneur' => 'Serial entrepreneur',
+          'patent' => 'Patent',
         ],
       ],
     ])->save();
